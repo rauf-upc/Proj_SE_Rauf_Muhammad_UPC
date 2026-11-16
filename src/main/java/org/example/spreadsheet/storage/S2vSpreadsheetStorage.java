@@ -7,6 +7,7 @@ import org.example.spreadsheet.domain.Spreadsheet;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -41,6 +42,8 @@ public final class S2vSpreadsheetStorage implements SpreadsheetStorage {
                 }
                 row++;
             }
+        } catch (CharacterCodingException exception) {
+            throw new S2vFormatException("File is not valid UTF-8: " + source, exception);
         }
         return loaded;
     }
@@ -111,6 +114,17 @@ public final class S2vSpreadsheetStorage implements SpreadsheetStorage {
     }
 
     private static void validateField(String raw) throws S2vFormatException {
+        for (int index = 0; index < raw.length(); index++) {
+            char character = raw.charAt(index);
+            if (Character.isHighSurrogate(character)) {
+                if (index + 1 >= raw.length() || !Character.isLowSurrogate(raw.charAt(index + 1))) {
+                    throw new S2vFormatException("Unpaired Unicode surrogate cannot be stored as UTF-8");
+                }
+                index++;
+            } else if (Character.isLowSurrogate(character)) {
+                throw new S2vFormatException("Unpaired Unicode surrogate cannot be stored as UTF-8");
+            }
+        }
         if (raw.indexOf('\n') >= 0 || raw.indexOf('\r') >= 0 || raw.indexOf('\0') >= 0) {
             throw new S2vFormatException("Cell contains a line break or NUL; S2V has no escaping rule for it");
         }

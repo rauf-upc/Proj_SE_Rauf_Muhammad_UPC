@@ -4,9 +4,10 @@
 !/pom.xml
 !/.gitignore
 
-# Documentation and AI instructions are never submission source.
+# Only the root project README is public documentation.
 *.[mM][dD]
 AGENTS.md
+!/README.md
 
 # Generated files, including any placed below src.
 *.class

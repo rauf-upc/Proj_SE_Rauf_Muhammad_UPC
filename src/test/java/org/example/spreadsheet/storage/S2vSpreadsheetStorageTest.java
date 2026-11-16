@@ -247,6 +247,41 @@ class S2vSpreadsheetStorageTest {
         assertEquals(sheet.getCells(), storage.load(file).getCells());
     }
 
+    @Test
+    void malformedUtf8ReportsTheFileAndEncoding() throws Exception {
+        Path file = directory.resolve("invalid unicode.s2v");
+        Files.write(file, new byte[]{(byte) 0xC3, 0x28});
+        S2vFormatException error = assertThrows(S2vFormatException.class, () -> storage.load(file));
+        assertTrue(error.getMessage().contains("UTF-8"));
+        assertTrue(error.getMessage().contains(file.toString()));
+        assertInstanceOf(java.nio.charset.CharacterCodingException.class, error.getCause());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"high \uD800", "low \uDC00", "wrong pair \uD800A"})
+    void unpairedUnicodeReportsItsCellBeforeCreatingAFile(String value) throws Exception {
+        Spreadsheet sheet = new Spreadsheet();
+        sheet.setContent(CellAddress.parse("C3"), value);
+        Path file = directory.resolve("not created.s2v");
+        S2vFormatException error = assertThrows(S2vFormatException.class, () -> storage.save(sheet, file));
+        assertTrue(error.getMessage().contains("C3"));
+        assertTrue(error.getMessage().contains("UTF-8"));
+        assertFalse(Files.exists(file));
+        assertEquals(value, raw(sheet, "C3"));
+        assertNoTemporaryFiles();
+    }
+
+    @Test
+    void supplementaryUnicodeRoundTripsWithoutChangingContent() throws Exception {
+        Spreadsheet sheet = new Spreadsheet();
+        String value = "UPC \uD83D\uDC27";
+        sheet.setContent(CellAddress.parse("A1"), value);
+        Path file = directory.resolve("unicode.s2v");
+        storage.save(sheet, file);
+        assertEquals(value + "\n", Files.readString(file));
+        assertEquals(value, raw(storage.load(file), "A1"));
+    }
+
     private Path write(String name, String contents) throws IOException {
         return Files.writeString(directory.resolve(name), contents, StandardCharsets.UTF_8);
     }

@@ -34,7 +34,7 @@ class SpreadsheetCliTest {
 
     @Test
     void clearingContentAndCreatingANewSheetWork() throws Exception {
-        String output = run("set\nA1\nvalue\nset\nA1\n\nshow\nA1\nset\nB1\nother\nnew\nshow\nB1\nexit\n");
+        String output = run("set\nA1\nvalue\nset\nA1\n\nshow\nA1\nset\nB1\nother\nnew\nyes\nshow\nB1\nexit\n");
         assertTrue(output.contains("A1 content: []"));
         assertTrue(output.contains("B1 content: []"));
         assertFalse(output.contains("Error:"));
@@ -43,7 +43,7 @@ class SpreadsheetCliTest {
     @Test
     void failedLoadLeavesTheCurrentSpreadsheetIntact() throws Exception {
         Path missing = directory.resolve("missing.s2v");
-        String output = run("set\nA1\nretained\nload\n" + missing + "\nshow\nA1\nexit\n");
+        String output = run("set\nA1\nretained\nload\n" + missing + "\nshow\nA1\nexit\nyes\n");
         assertTrue(output.contains("Error:"));
         assertFalse(output.contains("Loaded:"));
         assertTrue(output.contains("A1 content: [retained]"));
@@ -52,7 +52,7 @@ class SpreadsheetCliTest {
     @Test
     void failedLoadAfterAValidRowDoesNotInstallPartialData() throws Exception {
         Path file = Files.writeString(directory.resolve("invalid.s2v"), "replacement\n=MAX(\"a,b\",1)\n");
-        String output = run("set\nA1\nretained\nload\n" + file + "\nshow\nA1\nshow\nA2\nexit\n");
+        String output = run("set\nA1\nretained\nload\n" + file + "\nshow\nA1\nshow\nA2\nexit\nyes\n");
         assertTrue(output.contains("Error: Cell A2:"));
         assertTrue(output.contains("A1 content: [retained]"));
         assertTrue(output.contains("A2 content: []"));
@@ -61,16 +61,16 @@ class SpreadsheetCliTest {
 
     @Test
     void invalidAddressesDoNotChangePreviousContentAndUnknownCommandsAreExplained() throws Exception {
-        String output = run("set\nA1\nprevious\nset\nA0\nunknown\nshow\nA1\nexit\n");
+        String output = run("set\nA1\nprevious\nset\nA0\nunknown\nshow\nA1\nexit\nyes\n");
         assertTrue(output.contains("Error: Expected uppercase"));
-        assertTrue(output.contains("Error: choose new, set, show, save, load, or exit."));
+        assertTrue(output.contains("Error: unknown command. Type help for available operations."));
         assertTrue(output.contains("A1 content: [previous]"));
     }
 
     @Test
     void failedSaveDoesNotReportSuccessOrDamageTheFileOrCell() throws Exception {
         Path file = Files.writeString(directory.resolve("retained.s2v"), "previous file\n");
-        String output = run("set\nA1\ntext;literal\nsave\n" + file + "\nshow\nA1\nexit\n");
+        String output = run("set\nA1\ntext;literal\nsave\n" + file + "\nshow\nA1\nexit\nyes\n");
         assertTrue(output.contains("Error: Cell A1:"));
         assertFalse(output.contains("Saved:"));
         assertTrue(output.contains("A1 content: [text;literal]"));
@@ -79,7 +79,7 @@ class SpreadsheetCliTest {
 
     @Test
     void directoryDestinationsAndInvalidPathCharactersProduceErrors() throws Exception {
-        String output = run("save\n" + directory + "\nload\nbad\0path\nshow\nA1\nexit\n");
+        String output = run("save\n" + directory + "\nload\nbad\0path\nshow\nA1\nexit\nyes\n");
         assertTrue(output.contains("Error: Save destination must be a regular file"));
         assertTrue(output.contains("A1 content: []"));
         assertFalse(output.contains("Saved:"));
