@@ -1,0 +1,30 @@
+# Submission allowlist: internal work stays local.
+/*
+!/src/
+!/pom.xml
+!/.gitignore
+
+# Documentation and AI instructions are never submission source.
+*.[mM][dD]
+AGENTS.md
+
+# Generated files, including any placed below src.
+*.class
+*.log
+*.tmp
+*.bak
+
+# IDE/editor
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# docs/, prompts/, samples/, scripts/, target/, .maven/ and other root items
+# remain local under the allowlist. Required test fixtures live in src/test/resources/.
